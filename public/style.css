@@ -33,14 +33,14 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  min-height: 100dvh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: calc(20px + var(--safe-top)) 0 calc(40px + var(--safe-bottom));
 }
 
 /* Ambient floating blobs */
 .auth-blob {
-  position: fixed;
+  position: absolute;
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
