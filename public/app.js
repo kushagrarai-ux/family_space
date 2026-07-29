@@ -58,12 +58,14 @@ function showToast(msg, type='') {
 }
 
 async function api(method, path, body) {
-  const opts = { method, credentials:'same-origin', headers:{} };
-  if (body && !(body instanceof FormData)) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
-  else if (body instanceof FormData) opts.body=body;
+  const token = localStorage.getItem('fs_token');
+  const opts = { method, headers: {} };
+  if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+  if (body && !(body instanceof FormData)) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  else if (body instanceof FormData) opts.body = body;
   const res = await fetch(path, opts);
-  if (res.status===401) { currentUser=null; showView(viewAuth); throw new Error('Session expired'); }
-  if (!res.ok) { const e=await res.json().catch(()=>({error:res.statusText})); throw new Error(e.error||'Request failed'); }
+  if (res.status === 401) { currentUser = null; localStorage.removeItem('fs_token'); showView(viewAuth); throw new Error('Session expired'); }
+  if (!res.ok) { const e = await res.json().catch(() => ({ error: res.statusText })); throw new Error(e.error || 'Request failed'); }
   return res.json();
 }
 
@@ -99,6 +101,7 @@ $('form-auth').addEventListener('submit', async e => {
   try {
     const payload = authMode==='login' ? {email,password} : {email,username,password};
     const user = await api('POST', authMode==='login'?'/api/auth/login':'/api/auth/register', payload);
+    if (user.token) localStorage.setItem('fs_token', user.token);
     currentUser=user; $('user-display').textContent=user.username;
     $('auth-email').value=$('auth-username').value=$('auth-password').value=$('auth-password-confirm').value='';
     showView(viewHome); await loadMembers();
@@ -108,6 +111,7 @@ $('form-auth').addEventListener('submit', async e => {
 
 $('btn-logout').addEventListener('click', async () => {
   try { await api('POST','/api/auth/logout'); } catch {}
+  localStorage.removeItem('fs_token');
   currentUser=null; currentMemberId=null; currentFolderId=null; showView(viewAuth);
 });
 
@@ -368,12 +372,15 @@ $('form-upload').addEventListener('submit', async e=>{
   } catch(err) { showToast(err.message||'Upload failed','error'); btn.disabled=false; prog.classList.add('hidden'); }
 });
 
-function uploadXHR(url,fd,onProgress) {
-  return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest(); xhr.withCredentials=true; xhr.open('POST',url);
-    xhr.upload.addEventListener('progress',e=>{ if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100)); });
-    xhr.addEventListener('load',()=>{ if(xhr.status>=200&&xhr.status<300) resolve(JSON.parse(xhr.responseText)); else { try { reject(new Error(JSON.parse(xhr.responseText).error)); } catch { reject(new Error('Upload failed')); } } });
-    xhr.addEventListener('error',()=>reject(new Error('Network error')));
+function uploadXHR(url, fd, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    const token = localStorage.getItem('fs_token');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.addEventListener('progress', e => { if (e.lengthComputable) onProgress(Math.round(e.loaded / e.total * 100)); });
+    xhr.addEventListener('load', () => { if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText)); else { try { reject(new Error(JSON.parse(xhr.responseText).error)); } catch { reject(new Error('Upload failed')); } } });
+    xhr.addEventListener('error', () => reject(new Error('Network error')));
     xhr.send(fd);
   });
 }
@@ -395,9 +402,10 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 
 // ══ INIT ══════════════════════════════════════════════════════
 async function init() {
+  if (!localStorage.getItem('fs_token')) { showView(viewAuth); return; }
   try {
-    const user=await api('GET','/api/auth/me');
-    currentUser=user; $('user-display').textContent=user.username;
+    const user = await api('GET', '/api/auth/me');
+    currentUser = user; $('user-display').textContent = user.username;
     showView(viewHome); await loadMembers();
   } catch { showView(viewAuth); }
 }

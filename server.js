@@ -1,11 +1,11 @@
 'use strict';
-const express       = require('express');
-const path          = require('path');
-const bcrypt        = require('bcryptjs');
-const cookieSession = require('cookie-session');
-const multer        = require('multer');
+const express  = require('express');
+const path     = require('path');
+const crypto   = require('crypto');
+const bcrypt   = require('bcryptjs');
+const multer   = require('multer');
 const { v4: uuidv4 } = require('uuid');
-const cloudinary    = require('cloudinary').v2;
+const cloudinary = require('cloudinary').v2;
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -96,29 +96,45 @@ async function deleteCloudinaryFile(storedName) {
   } catch (e) { console.error('Cloudinary delete:', e.message); }
 }
 
-// ── Session (cookie-based — stateless, works on serverless) ─────
-const SESSION_SECRET = process.env.SESSION_SECRET || uuidv4();
+// ── JWT auth (stateless, works on serverless, no cookies) ─────────
+const JWT_SECRET = process.env.SESSION_SECRET || uuidv4();
+
+function signToken(payload) {
+  const h = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const b = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600 })).toString('base64url');
+  const s = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
+  return `${h}.${b}.${s}`;
+}
+
+function verifyToken(token) {
+  const parts = (token || '').split('.');
+  if (parts.length !== 3) throw new Error('bad token');
+  const [h, b, s] = parts;
+  const expected = crypto.createHmac('sha256', JWT_SECRET).update(`${h}.${b}`).digest('base64url');
+  if (!crypto.timingSafeEqual(Buffer.from(s, 'base64url'), Buffer.from(expected, 'base64url'))) throw new Error('invalid');
+  const payload = JSON.parse(Buffer.from(b, 'base64url').toString());
+  if (payload.exp && Date.now() / 1000 > payload.exp) throw new Error('expired');
+  return payload;
+}
 
 // ── Multer (memory — files buffered then sent to Cloudinary) ─────
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
 
 // ── Middleware ──────────────────────────────────────────────────
 app.use(express.json());
-app.use(cookieSession({
-  name:     'fs_sess',
-  keys:     [SESSION_SECRET],
-  maxAge:   30 * 24 * 60 * 60 * 1000,
-  httpOnly: true,
-  sameSite: 'lax',
-  secure:   process.env.NODE_ENV === 'production',
-}));
 app.use(async (_req, _res, next) => { try { await ensureDB(); next(); } catch (e) { next(e); } });
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/pdfjs', express.static(path.join(__dirname, 'node_modules/pdfjs-dist/build')));
 
 function requireAuth(req, res, next) {
-  if (!req.session?.userId) return res.status(401).json({ error: 'Not authenticated' });
-  next();
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    req.session = verifyToken(auth.slice(7));
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
 }
 
 // ── Auth ────────────────────────────────────────────────────────
@@ -138,10 +154,8 @@ app.post('/api/auth/register', async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     await q('INSERT INTO users (id, email, username, password_hash) VALUES (?, ?, ?, ?)',
             [id, emailNorm, username.trim(), hash]);
-    req.session.userId   = id;
-    req.session.username = username.trim();
-    req.session.email    = emailNorm;
-    res.status(201).json({ id, username: username.trim(), email: emailNorm });
+    const token = signToken({ userId: id, username: username.trim(), email: emailNorm });
+    res.status(201).json({ id, username: username.trim(), email: emailNorm, token });
   } catch (e) {
     if (e.message?.includes('UNIQUE') && e.message?.includes('email'))
       return res.status(409).json({ error: 'An account with this email already exists' });
@@ -159,17 +173,21 @@ app.post('/api/auth/login', async (req, res) => {
   if (!user) return res.status(401).json({ error: 'Invalid email or password' });
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) return res.status(401).json({ error: 'Invalid email or password' });
-  req.session.userId   = user.id;
-  req.session.username = user.username;
-  req.session.email    = user.email;
-  res.json({ id: user.id, username: user.username, email: user.email });
+  const token = signToken({ userId: user.id, username: user.username, email: user.email });
+  res.json({ id: user.id, username: user.username, email: user.email, token });
 });
 
-app.post('/api/auth/logout', (req, res) => { req.session = null; res.json({ success: true }); });
+app.post('/api/auth/logout', (_req, res) => res.json({ success: true }));
 
 app.get('/api/auth/me', (req, res) => {
-  if (!req.session?.userId) return res.status(401).json({ error: 'Not authenticated' });
-  res.json({ id: req.session.userId, username: req.session.username, email: req.session.email });
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    const p = verifyToken(auth.slice(7));
+    res.json({ id: p.userId, username: p.username, email: p.email });
+  } catch {
+    res.status(401).json({ error: 'Not authenticated' });
+  }
 });
 
 // ── Members ─────────────────────────────────────────────────────
