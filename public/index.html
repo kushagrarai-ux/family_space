@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Family Space" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <title>Family Space</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- ── AUTH VIEW ─────────────────────────────────────── -->
+  <div id="view-auth" class="view active">
+    <!-- Ambient background blobs -->
+    <div class="auth-blob auth-blob-1"></div>
+    <div class="auth-blob auth-blob-2"></div>
+    <div class="auth-blob auth-blob-3"></div>
+
+    <div class="auth-page">
+      <!-- Animated mascot -->
+      <div class="mascot-wrap">
+        <svg class="mascot-svg" viewBox="0 0 100 128" xmlns="http://www.w3.org/2000/svg">
+          <!-- Shadow -->
+          <ellipse cx="50" cy="124" rx="22" ry="4" fill="rgba(99,102,241,0.2)"/>
+          <!-- Arms (behind body) -->
+          <path class="mascot-arm mascot-arm-l" d="M21,75 Q4,68 9,51" stroke="#4338ca" stroke-width="9" fill="none" stroke-linecap="round"/>
+          <path class="mascot-arm mascot-arm-r" d="M79,75 Q96,68 91,51" stroke="#4338ca" stroke-width="9" fill="none" stroke-linecap="round"/>
+          <!-- House body -->
+          <rect x="17" y="52" width="66" height="62" rx="12" fill="#6366f1"/>
+          <!-- Roof back -->
+          <polygon points="7,59 50,6 93,59" fill="#4338ca"/>
+          <!-- Roof front -->
+          <polygon points="13,59 50,12 87,59" fill="#818cf8"/>
+          <!-- Chimney -->
+          <rect x="65" y="16" width="11" height="22" rx="3" fill="#4338ca"/>
+          <rect x="63" y="14" width="15" height="5" rx="2.5" fill="#4338ca"/>
+          <!-- Door -->
+          <rect x="35" y="86" width="30" height="28" rx="8" fill="rgba(67,56,202,0.55)"/>
+          <!-- Door knob -->
+          <circle cx="57" cy="101" r="2" fill="#818cf8"/>
+          <!-- Eye whites -->
+          <circle cx="37" cy="70" r="10" fill="white"/>
+          <circle cx="63" cy="70" r="10" fill="white"/>
+          <!-- Pupils -->
+          <g class="mascot-eye-l">
+            <circle cx="39" cy="72" r="5.5" fill="#1e1b4b"/>
+            <circle cx="41" cy="70" r="2" fill="white"/>
+          </g>
+          <g class="mascot-eye-r">
+            <circle cx="65" cy="72" r="5.5" fill="#1e1b4b"/>
+            <circle cx="67" cy="70" r="2" fill="white"/>
+          </g>
+          <!-- Smile -->
+          <path d="M41,81 Q50,88 59,81" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <!-- Feet -->
+          <rect x="25" y="111" width="19" height="10" rx="5" fill="#4338ca"/>
+          <rect x="56" y="111" width="19" height="10" rx="5" fill="#4338ca"/>
+        </svg>
+      </div>
+
+      <!-- Card -->
+      <div class="auth-card">
+        <h1 class="auth-app-name">Family Space</h1>
+        <p class="auth-tagline">Your family's private document hub</p>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Sign In</button>
+          <button class="auth-tab" data-tab="register">Register</button>
+        </div>
+
+        <form id="form-auth" novalidate>
+          <div id="auth-error" class="auth-error hidden"></div>
+
+          <div class="auth-field">
+            <label class="auth-field-label" for="auth-email">Email</label>
+            <input class="auth-field-input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" />
+          </div>
+
+          <div id="auth-username-wrap" class="auth-field hidden">
+            <label class="auth-field-label" for="auth-username">Your Name</label>
+            <input class="auth-field-input" id="auth-username" type="text" placeholder="e.g. Kushagra" autocomplete="name" />
+          </div>
+
+          <div class="auth-field">
+            <label class="auth-field-label" for="auth-password">Password</label>
+            <input class="auth-field-input" id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+
+          <div id="auth-password-confirm-wrap" class="auth-field hidden">
+            <label class="auth-field-label" for="auth-password-confirm">Confirm Password</label>
+            <input class="auth-field-input" id="auth-password-confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="auth-submit-btn" id="btn-auth-submit">Sign In</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HOME VIEW (Members) ───────────────────────────── -->
+  <div id="view-home" class="view">
+    <header class="home-header">
+      <div class="home-header-top">
+        <div class="home-brand">
+          <span class="home-brand-icon">&#127968;</span>
+          <span class="home-brand-name">Family Space</span>
+        </div>
+        <button class="logout-pill" id="btn-logout" aria-label="Sign out">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+      <div class="home-header-greeting">
+        <p class="greeting-hello">Hello, <span id="user-display">there</span> &#128075;</p>
+        <p class="greeting-sub">Manage your family's documents</p>
+      </div>
+    </header>
+    <main class="home-content">
+      <div class="section-header">
+        <p class="section-label">Family Members</p>
+        <button class="btn btn-primary btn-sm" id="btn-add-member">+ Add Member</button>
+      </div>
+      <div id="members-list" class="members-list"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">&#128106;</div>
+        <p class="empty-title">No family members yet</p>
+        <p class="empty-sub">Add your first family member to get started.</p>
+        <button class="btn btn-primary" style="max-width:200px;margin:20px auto 0;display:block" id="btn-add-member-empty">+ Add Member</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── MEMBER VIEW (Folders) ─────────────────────────── -->
+  <div id="view-member" class="view">
+    <header class="app-header detail-header">
+      <button class="btn-icon btn-icon-purple" id="btn-back-home" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="detail-title-wrap">
+        <h2 id="member-name" class="detail-name"></h2>
+        <span id="member-relation" class="member-relation-badge"></span>
+      </div>
+      <button class="btn-icon danger" id="btn-delete-member" title="Delete member" aria-label="Delete member">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </header>
+    <main class="detail-content">
+      <div class="section-header">
+        <p class="section-label">Folders</p>
+        <button class="btn btn-primary btn-sm" id="btn-add-folder">+ New Folder</button>
+      </div>
+      <div id="folders-list" class="folders-grid"></div>
+      <div id="folders-empty" class="empty-state hidden">
+        <div class="empty-icon">&#128193;</div>
+        <p class="empty-title">No folders yet</p>
+        <p class="empty-sub">Create a folder to organise documents.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── FOLDER VIEW (Files) ───────────────────────────── -->
+  <div id="view-folder" class="view">
+    <header class="app-header detail-header">
+      <button class="btn-icon btn-icon-purple" id="btn-back-member" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="detail-title-wrap">
+        <p class="breadcrumb" id="folder-breadcrumb"></p>
+        <h2 id="folder-name" class="detail-name"></h2>
+      </div>
+      <button class="btn-icon danger" id="btn-delete-folder" title="Delete folder" aria-label="Delete folder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </header>
+    <main class="detail-content">
+      <p class="section-label">Files <span id="file-count-badge" class="badge">0</span></p>
+      <div id="files-list" class="files-list"></div>
+      <div id="files-empty" class="empty-state hidden">
+        <div class="empty-icon">&#128196;</div>
+        <p class="empty-title">No files yet</p>
+        <p class="empty-sub">Tap Upload to add files to this folder.</p>
+      </div>
+    </main>
+    <button class="fab" id="btn-upload" aria-label="Upload file">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Upload
+    </button>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ── Add Member Modal ────────────────────────────────── -->
+<div id="modal-add-member" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-member-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title" id="modal-member-title">Add Family Member</h3>
+    <form id="form-add-member" novalidate>
+      <label class="field-label" for="input-member-name">Full Name <span class="required">*</span></label>
+      <input class="field-input" id="input-member-name" type="text" placeholder="e.g. Ravi Sharma" autocomplete="off" required />
+
+      <label class="field-label" for="input-member-relation">Relation <span class="optional">(optional)</span></label>
+      <select class="field-input field-select" id="input-member-relation">
+        <option value="">— Choose —</option>
+        <option value="Self">Self</option>
+        <option value="Spouse / Partner">Spouse / Partner</option>
+        <option value="Father">Father</option>
+        <option value="Mother">Mother</option>
+        <option value="Son">Son</option>
+        <option value="Daughter">Daughter</option>
+        <option value="Brother">Brother</option>
+        <option value="Sister">Sister</option>
+        <option value="Grandfather">Grandfather</option>
+        <option value="Grandmother">Grandmother</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-dismiss="modal-add-member">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Member</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Add Folder Modal ────────────────────────────────── -->
+<div id="modal-add-folder" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-folder-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title" id="modal-folder-title">Create Folder</h3>
+    <form id="form-add-folder" novalidate>
+      <label class="field-label" for="input-folder-name">Folder Name <span class="required">*</span></label>
+      <input class="field-input" id="input-folder-name" type="text" placeholder="e.g. Medical Records, Invoices…" autocomplete="off" required />
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-dismiss="modal-add-folder">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Upload Modal ────────────────────────────────────── -->
+<div id="modal-upload" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-upload-title">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <h3 class="modal-title" id="modal-upload-title">Upload File</h3>
+    <form id="form-upload" novalidate>
+      <div class="drop-zone" id="drop-zone" tabindex="0" aria-label="Drop files here or click to browse">
+        <input type="file" id="file-input" accept="*/*" hidden />
+        <div class="drop-inner" id="drop-inner">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <p class="drop-text">Tap to choose a file</p>
+          <p class="drop-sub">All file types &middot; max 100 MB</p>
+        </div>
+        <div class="drop-preview hidden" id="drop-preview">
+          <span class="preview-icon" id="preview-icon">&#128196;</span>
+          <div class="preview-info">
+            <p class="preview-name" id="preview-name"></p>
+            <p class="preview-size" id="preview-size"></p>
+          </div>
+          <button type="button" class="btn-icon small" id="btn-clear-file" aria-label="Remove file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <label class="field-label" for="input-note">Note <span class="optional">(optional)</span></label>
+      <input class="field-input" id="input-note" type="text" placeholder="Add a short description…" autocomplete="off" />
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-dismiss="modal-upload">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-submit-upload" disabled>Upload</button>
+      </div>
+      <div class="upload-progress hidden" id="upload-progress">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Preview Modal ───────────────────────────────────── -->
+<div id="modal-preview" class="preview-overlay hidden" role="dialog" aria-modal="true">
+  <div class="preview-sheet">
+    <div class="preview-header">
+      <button class="btn-icon" id="btn-close-preview" aria-label="Close preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="preview-filename" id="preview-filename"></span>
+      <a id="preview-download-btn" class="btn-icon" title="Download" aria-label="Download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </a>
+    </div>
+    <div class="preview-body" id="preview-body"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
+
+<script src="/pdfjs/pdf.min.js"></script>
+<script src="/app.js?v=5"></script>
+</body>
+</html>
