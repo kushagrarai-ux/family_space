@@ -115,6 +115,82 @@ $('btn-logout').addEventListener('click', async () => {
   currentUser=null; currentMemberId=null; currentFolderId=null; showView(viewAuth);
 });
 
+// ══ FORGOT PASSWORD ═══════════════════════════════════════════
+let forgotEmail = ''; // stored between step1 and step2
+
+function showAuthMain() {
+  $('form-auth').classList.remove('hidden');
+  $('auth-tabs').classList.remove('hidden');
+  $('forgot-link-wrap').classList.remove('hidden');
+  $('auth-forgot-step1').classList.add('hidden');
+  $('auth-forgot-step2').classList.add('hidden');
+}
+
+function showForgotStep1() {
+  $('form-auth').classList.add('hidden');
+  $('auth-tabs').classList.add('hidden');
+  $('forgot-link-wrap').classList.add('hidden');
+  $('auth-forgot-step1').classList.remove('hidden');
+  $('auth-forgot-step2').classList.add('hidden');
+  $('auth-forgot-error').classList.add('hidden');
+  $('forgot-email').value = '';
+  setTimeout(() => $('forgot-email').focus(), 60);
+}
+
+function showForgotStep2() {
+  $('auth-forgot-step1').classList.add('hidden');
+  $('auth-forgot-step2').classList.remove('hidden');
+  $('auth-reset-error').classList.add('hidden');
+  $('reset-otp').value = '';
+  $('reset-password').value = '';
+  $('reset-confirm').value = '';
+  setTimeout(() => $('reset-otp').focus(), 60);
+}
+
+$('link-forgot-password').addEventListener('click', e => { e.preventDefault(); showForgotStep1(); });
+$('link-back-to-login').addEventListener('click', e => { e.preventDefault(); showAuthMain(); });
+$('link-back-to-step1').addEventListener('click', e => { e.preventDefault(); showForgotStep1(); });
+
+$('form-forgot').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('forgot-email').value.trim();
+  const errEl = $('auth-forgot-error');
+  errEl.classList.add('hidden');
+  if (!email) { errEl.textContent = 'Please enter your email'; errEl.classList.remove('hidden'); return; }
+  const btn = $('btn-forgot-submit'); btn.disabled = true; btn.textContent = 'Sending\u2026';
+  try {
+    await api('POST', '/api/auth/forgot-password', { email });
+    forgotEmail = email;
+    showForgotStep2();
+  } catch(err) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+  finally { btn.disabled = false; btn.textContent = 'Send Code'; }
+});
+
+$('form-reset').addEventListener('submit', async e => {
+  e.preventDefault();
+  const otp      = $('reset-otp').value.trim();
+  const password = $('reset-password').value;
+  const confirm  = $('reset-confirm').value;
+  const errEl = $('auth-reset-error');
+  errEl.classList.add('hidden');
+  if (!otp || !password || !confirm) { errEl.textContent = 'Please fill in all fields'; errEl.classList.remove('hidden'); return; }
+  if (password !== confirm) { errEl.textContent = 'Passwords do not match'; errEl.classList.remove('hidden'); return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; errEl.classList.remove('hidden'); return; }
+  const btn = $('btn-reset-submit'); btn.disabled = true; btn.textContent = 'Resetting\u2026';
+  try {
+    await api('POST', '/api/auth/reset-password', { email: forgotEmail, otp, password });
+    showToast('Password reset! Please sign in with your new password.', 'success');
+    showAuthMain();
+    // Switch to login tab
+    authMode = 'login';
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+    $('btn-auth-submit').textContent = 'Sign In';
+    $('auth-username-wrap').classList.add('hidden');
+    $('auth-password-confirm-wrap').classList.add('hidden');
+  } catch(err) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+  finally { btn.disabled = false; btn.textContent = 'Reset Password'; }
+});
+
 // ══ MEMBERS ═══════════════════════════════════════════════════
 function openAddMemberModal() {
   $('input-member-name').value=''; $('input-member-relation').value='';

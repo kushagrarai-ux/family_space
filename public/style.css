@@ -234,6 +234,24 @@
 .auth-submit-btn:active { transform: translateY(0); }
 .auth-submit-btn:disabled { opacity: 0.62; transform: none; cursor: not-allowed; }
 
+/* Forgot password */
+.auth-forgot-link { text-align: center; margin: 4px 0 0; }
+.auth-forgot-link a { color: #6366f1; font-size: 13.5px; font-weight: 500; text-decoration: none; }
+.auth-forgot-link a:hover { text-decoration: underline; }
+
+.auth-back-link { display: inline-block; color: #6366f1; font-size: 13px; font-weight: 500; text-decoration: none; margin-bottom: 16px; }
+.auth-back-link:hover { text-decoration: underline; }
+
+.auth-forgot-title { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0 0 6px; }
+.auth-forgot-sub   { font-size: 13.5px; color: #64748b; margin: 0 0 20px; line-height: 1.5; }
+
+.auth-otp-input {
+  font-size: 22px !important;
+  letter-spacing: 6px;
+  text-align: center;
+  font-weight: 700;
+}
+
 /* Error */
 .auth-error {
   display: flex;

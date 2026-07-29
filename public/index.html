@@ -99,6 +99,49 @@
 
           <button type="submit" class="auth-submit-btn" id="btn-auth-submit">Sign In</button>
         </form>
+
+        <!-- Forgot password link (shown on login tab) -->
+        <p class="auth-forgot-link" id="forgot-link-wrap">
+          <a href="#" id="link-forgot-password">Forgot password?</a>
+        </p>
+
+        <!-- ── Forgot Step 1: Enter Email ── -->
+        <div id="auth-forgot-step1" class="hidden">
+          <a href="#" class="auth-back-link" id="link-back-to-login">&#8592; Back to sign in</a>
+          <p class="auth-forgot-title">Reset Password</p>
+          <p class="auth-forgot-sub">Enter your email — we'll send a 6-digit code.</p>
+          <div id="auth-forgot-error" class="auth-error hidden"></div>
+          <form id="form-forgot" novalidate>
+            <div class="auth-field">
+              <label class="auth-field-label" for="forgot-email">Email address</label>
+              <input class="auth-field-input" id="forgot-email" type="email" placeholder="you@example.com" inputmode="email" autocomplete="email" />
+            </div>
+            <button type="submit" class="auth-submit-btn" id="btn-forgot-submit">Send Code</button>
+          </form>
+        </div>
+
+        <!-- ── Forgot Step 2: Enter OTP + New Password ── -->
+        <div id="auth-forgot-step2" class="hidden">
+          <a href="#" class="auth-back-link" id="link-back-to-step1">&#8592; Resend code</a>
+          <p class="auth-forgot-title">Enter Reset Code</p>
+          <p class="auth-forgot-sub">Check your email for the 6-digit code.</p>
+          <div id="auth-reset-error" class="auth-error hidden"></div>
+          <form id="form-reset" novalidate>
+            <div class="auth-field">
+              <label class="auth-field-label" for="reset-otp">6-digit code</label>
+              <input class="auth-field-input auth-otp-input" id="reset-otp" type="text" placeholder="123456" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label" for="reset-password">New password</label>
+              <input class="auth-field-input" id="reset-password" type="password" placeholder="••••••••" autocomplete="new-password" />
+            </div>
+            <div class="auth-field">
+              <label class="auth-field-label" for="reset-confirm">Confirm password</label>
+              <input class="auth-field-input" id="reset-confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+            </div>
+            <button type="submit" class="auth-submit-btn" id="btn-reset-submit">Reset Password</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -300,6 +343,6 @@
 <div id="toast" class="toast hidden" role="alert" aria-live="assertive"></div>
 
 <script src="/pdfjs/pdf.min.js"></script>
-<script src="/app.js?v=6"></script>
+<script src="/app.js?v=7"></script>
 </body>
 </html>

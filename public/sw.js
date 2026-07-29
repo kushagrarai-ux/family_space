@@ -1,4 +1,4 @@
-const CACHE_NAME = 'family-space-v4';
+const CACHE_NAME = 'family-space-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

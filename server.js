@@ -1,9 +1,10 @@
 'use strict';
-const express  = require('express');
-const path     = require('path');
-const crypto   = require('crypto');
-const bcrypt   = require('bcryptjs');
-const multer   = require('multer');
+const express    = require('express');
+const path       = require('path');
+const crypto     = require('crypto');
+const bcrypt     = require('bcryptjs');
+const multer     = require('multer');
+const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('cloudinary').v2;
 
@@ -74,12 +75,30 @@ async function ensureDB() {
         { type: 'execute', stmt: { sql: `CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, relation TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now')))`, args: [] } },
         { type: 'execute', stmt: { sql: `CREATE TABLE IF NOT EXISTS folders (id TEXT PRIMARY KEY, member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')))`, args: [] } },
         { type: 'execute', stmt: { sql: `CREATE TABLE IF NOT EXISTS files (id TEXT PRIMARY KEY, folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, original_name TEXT NOT NULL, stored_name TEXT NOT NULL, mime_type TEXT NOT NULL, size INTEGER NOT NULL, note TEXT DEFAULT '', uploaded_at TEXT DEFAULT (datetime('now')))`, args: [] } },
+        { type: 'execute', stmt: { sql: `CREATE TABLE IF NOT EXISTS password_resets (id TEXT PRIMARY KEY, email TEXT NOT NULL, otp_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, used INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`, args: [] } },
         { type: 'close' }
       ]
     })
   });
   if (!res.ok) throw new Error(`DB init failed: ${res.status}`);
   _dbReady = true;
+}
+
+// ── Email (Nodemailer + Gmail SMTP) ────────────────────────────
+function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
+function hashOtp(otp) { return crypto.createHash('sha256').update(otp + (process.env.SESSION_SECRET || '')).digest('hex'); }
+
+async function sendOtpEmail(to, otp) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+  });
+  await transporter.sendMail({
+    from: `"Family Space 🏠" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: `${otp} is your Family Space reset code`,
+    html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#f5f3ff;border-radius:20px"><h2 style="color:#6366f1;margin:0 0 8px">🏠 Family Space</h2><p style="color:#475569;margin:0 0 24px">Here is your password reset code:</p><div style="background:#fff;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 20px rgba(99,102,241,.15)"><p style="color:#94a3b8;font-size:13px;margin:0 0 6px">Your one-time code</p><div style="font-size:40px;font-weight:800;letter-spacing:10px;color:#6366f1">${otp}</div><p style="color:#94a3b8;font-size:12px;margin:12px 0 0">Expires in 10 minutes</p></div><p style="color:#94a3b8;font-size:12px;margin:20px 0 0">If you didn't request this, you can safely ignore this email.</p></div>`
+  });
 }
 
 // ── Cloudinary helpers ──────────────────────────────────────────
@@ -178,6 +197,46 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.post('/api/auth/logout', (_req, res) => res.json({ success: true }));
+
+// ── Forgot / Reset password ─────────────────────────────────────
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Email is required' });
+  const emailNorm = String(email).trim().toLowerCase();
+  const user = row(await q('SELECT id FROM users WHERE email = ?', [emailNorm]));
+  if (!user) return res.json({ success: true }); // don't reveal if email exists
+  const otp     = generateOtp();
+  const otpHash = hashOtp(otp);
+  const expiresAt = Math.floor(Date.now() / 1000) + 600; // 10 min
+  await q('UPDATE password_resets SET used = 1 WHERE email = ? AND used = 0', [emailNorm]);
+  await q('INSERT INTO password_resets (id, email, otp_hash, expires_at) VALUES (?, ?, ?, ?)',
+          [uuidv4(), emailNorm, otpHash, expiresAt]);
+  try {
+    await sendOtpEmail(emailNorm, otp);
+  } catch (e) {
+    console.error('Email error:', e.message);
+    return res.status(500).json({ error: 'Could not send email. Please check GMAIL_USER and GMAIL_APP_PASSWORD in Vercel environment variables.' });
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email, otp, password } = req.body || {};
+  if (!email || !otp || !password) return res.status(400).json({ error: 'All fields are required' });
+  if (String(password).length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  const emailNorm = String(email).trim().toLowerCase();
+  const otpHash   = hashOtp(String(otp).trim());
+  const now       = Math.floor(Date.now() / 1000);
+  const reset = row(await q(
+    'SELECT id FROM password_resets WHERE email = ? AND otp_hash = ? AND used = 0 AND expires_at > ?',
+    [emailNorm, otpHash, now]
+  ));
+  if (!reset) return res.status(400).json({ error: 'Invalid or expired code. Please request a new one.' });
+  await q('UPDATE password_resets SET used = 1 WHERE id = ?', [reset.id]);
+  const hash = await bcrypt.hash(String(password), 12);
+  await q('UPDATE users SET password_hash = ? WHERE email = ?', [hash, emailNorm]);
+  res.json({ success: true });
+});
 
 app.get('/api/auth/me', (req, res) => {
   const auth = req.headers.authorization || '';
