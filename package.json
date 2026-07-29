@@ -1,17 +1,19 @@
 {
-  "name": "health-records",
+  "name": "family-space",
   "version": "1.0.0",
-  "description": "Personal Health Records Management System",
+  "description": "Family document storage PWA",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npx nodemon server.js"
+    "dev": "npx nodemon server.js",
+    "vercel-build": "echo Build complete"
   },
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^13.0.2",
+    "cloudinary": "^2.5.1",
+    "cookie-session": "^2.1.0",
     "express": "^4.18.2",
-    "express-session": "^1.19.0",
     "multer": "^2.2.0",
     "pdfjs-dist": "^3.11.174",
     "uuid": "^11.1.1"
