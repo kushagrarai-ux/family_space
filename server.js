@@ -84,21 +84,52 @@ async function ensureDB() {
   _dbReady = true;
 }
 
-// ── Email (Nodemailer + Gmail SMTP) ────────────────────────────
+// ── Email (Resend HTTP API  OR  Nodemailer + Gmail SMTP) ────────
+// Set ONE of:
+//   RESEND_API_KEY + EMAIL_FROM   (recommended – free at resend.com)
+//   GMAIL_USER + GMAIL_APP_PASSWORD
 function generateOtp() { return String(Math.floor(100000 + Math.random() * 900000)); }
 function hashOtp(otp) { return crypto.createHash('sha256').update(otp + (process.env.SESSION_SECRET || '')).digest('hex'); }
 
+const OTP_EMAIL_HTML = (otp) =>
+  `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#f5f3ff;border-radius:20px">
+   <h2 style="color:#6366f1;margin:0 0 8px">&#127968; Family Space</h2>
+   <p style="color:#475569;margin:0 0 24px">Here is your password reset code:</p>
+   <div style="background:#fff;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 20px rgba(99,102,241,.15)">
+     <p style="color:#94a3b8;font-size:13px;margin:0 0 6px">Your one-time code</p>
+     <div style="font-size:40px;font-weight:800;letter-spacing:10px;color:#6366f1">${otp}</div>
+     <p style="color:#94a3b8;font-size:12px;margin:12px 0 0">Expires in 10 minutes</p>
+   </div>
+   <p style="color:#94a3b8;font-size:12px;margin:20px 0 0">If you didn't request this, you can safely ignore this email.</p>
+  </div>`;
+
 async function sendOtpEmail(to, otp) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  });
-  await transporter.sendMail({
-    from: `"Family Space 🏠" <${process.env.GMAIL_USER}>`,
-    to,
-    subject: `${otp} is your Family Space reset code`,
-    html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:420px;margin:0 auto;padding:32px;background:#f5f3ff;border-radius:20px"><h2 style="color:#6366f1;margin:0 0 8px">🏠 Family Space</h2><p style="color:#475569;margin:0 0 24px">Here is your password reset code:</p><div style="background:#fff;border-radius:14px;padding:28px;text-align:center;box-shadow:0 4px 20px rgba(99,102,241,.15)"><p style="color:#94a3b8;font-size:13px;margin:0 0 6px">Your one-time code</p><div style="font-size:40px;font-weight:800;letter-spacing:10px;color:#6366f1">${otp}</div><p style="color:#94a3b8;font-size:12px;margin:12px 0 0">Expires in 10 minutes</p></div><p style="color:#94a3b8;font-size:12px;margin:20px 0 0">If you didn't request this, you can safely ignore this email.</p></div>`
-  });
+  const subject = `${otp} is your Family Space reset code`;
+  const html    = OTP_EMAIL_HTML(otp);
+
+  // ── Option 1: Resend (preferred) ──────────────────────────────
+  if (process.env.RESEND_API_KEY) {
+    const from = process.env.EMAIL_FROM || 'Family Space <onboarding@resend.dev>';
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [to], subject, html }),
+    });
+    if (!r.ok) { const t = await r.text(); throw new Error(`Resend: ${r.status} ${t}`); }
+    return;
+  }
+
+  // ── Option 2: Gmail SMTP (Nodemailer) ─────────────────────────
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    });
+    await transporter.sendMail({ from: `"Family Space" <${process.env.GMAIL_USER}>`, to, subject, html });
+    return;
+  }
+
+  throw new Error('NO_EMAIL_PROVIDER');
 }
 
 // ── Cloudinary helpers ──────────────────────────────────────────
@@ -215,7 +246,12 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     await sendOtpEmail(emailNorm, otp);
   } catch (e) {
     console.error('Email error:', e.message);
-    return res.status(500).json({ error: 'Could not send email. Please check GMAIL_USER and GMAIL_APP_PASSWORD in Vercel environment variables.' });
+    const noProvider = e.message === 'NO_EMAIL_PROVIDER';
+    return res.status(500).json({
+      error: noProvider
+        ? 'Email not configured. Add RESEND_API_KEY (from resend.com) or GMAIL_USER + GMAIL_APP_PASSWORD to your Vercel environment variables.'
+        : `Could not send email: ${e.message}`
+    });
   }
   res.json({ success: true });
 });
