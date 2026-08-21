@@ -26,6 +26,37 @@ function showView(view) {
   window.scrollTo(0, 0);
 }
 
+function bind3DTilt(el) {
+  if (!el || el.dataset.tiltBound === 'true') return;
+  el.dataset.tiltBound = 'true';
+
+  const reset = () => {
+    el.style.transform = '';
+    el.style.boxShadow = '';
+  };
+
+  el.addEventListener('pointermove', (event) => {
+    const rect = el.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    const rotateY = (px - 0.5) * 12;
+    const rotateX = (0.5 - py) * 12;
+    const glowX = (px - 0.5) * 18;
+    const glowY = (py - 0.5) * 18;
+
+    el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-3px)`;
+    el.style.boxShadow = `0 18px 30px rgba(99, 102, 241, 0.12), ${glowX}px ${glowY}px 22px rgba(99, 102, 241, 0.08)`;
+  });
+
+  el.addEventListener('pointerleave', reset);
+  el.addEventListener('pointercancel', reset);
+}
+
+function bind3DHover(container) {
+  if (!container) return;
+  container.querySelectorAll('.member-card, .folder-card, .file-card, .auth-card').forEach(bind3DTilt);
+}
+
 // ── Helpers ───────────────────────────────────────────────────
 function formatDate(iso) {
   if (!iso) return '';
@@ -43,12 +74,12 @@ function avatarColor(name) { let h=0; for(const c of name) h=(h*31+c.charCodeAt(
 
 function getFileIcon(mime, name) {
   const ext = (name.split('.').pop()||'').toLowerCase();
-  if (/^image\//.test(mime)||['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext)) return {emoji:'&#128444;&#65039;',cls:'img'};
-  if (mime==='application/pdf'||ext==='pdf') return {emoji:'&#128196;',cls:'pdf'};
-  if (['doc','docx'].includes(ext)||/word/.test(mime)) return {emoji:'&#128209;',cls:'doc'};
-  if (['xls','xlsx'].includes(ext)||/sheet|excel/.test(mime)) return {emoji:'&#128202;',cls:'doc'};
-  if (mime.startsWith('video/')||['mp4','mov','avi','mkv'].includes(ext)) return {emoji:'&#127916;',cls:'video'};
-  return {emoji:'&#128196;',cls:''};
+  if (/^image\//.test(mime)||['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext)) return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4m-9 6.5h8M9 15.5h8m-8 3h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:'img'};
+  if (mime==='application/pdf'||ext==='pdf') return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4M9 13h6m-6 3h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:'pdf'};
+  if (['doc','docx'].includes(ext)||/word/.test(mime)) return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4M9 13.5h6M9 16.5h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:'doc'};
+  if (['xls','xlsx'].includes(ext)||/sheet|excel/.test(mime)) return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4M9 12.5h6M9 15.5h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:'doc'};
+  if (mime.startsWith('video/')||['mp4','mov','avi','mkv'].includes(ext)) return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6.5h8.5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Zm10.5 4.5 3.5-2v7l-3.5-2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:'video'};
+  return {svg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4M9 13h6m-6 3h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>',cls:''};
 }
 
 let toastTimer = null;
@@ -83,6 +114,8 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
   });
 });
 
+bind3DTilt(document.querySelector('.auth-card'));
+
 $('form-auth').addEventListener('submit', async e => {
   e.preventDefault();
   const email    = $('auth-email').value.trim();
@@ -105,14 +138,61 @@ $('form-auth').addEventListener('submit', async e => {
     currentUser=user; $('user-display').textContent=user.username;
     $('auth-email').value=$('auth-username').value=$('auth-password').value=$('auth-password-confirm').value='';
     showView(viewHome); await loadMembers();
+    showWelcomeModal();
   } catch(err) { errEl.textContent=err.message; errEl.classList.remove('hidden'); }
   finally { btn.disabled=false; btn.textContent=authMode==='login'?'Sign In':'Create Account'; }
 });
 
+function forceLogout() {
+  localStorage.removeItem('fs_token');
+  sessionStorage.clear();
+
+  currentUser = null;
+  currentMemberId = null;
+  currentMemberName = '';
+  currentFolderId = null;
+  currentFolderName = '';
+
+  authMode = 'login';
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'login'));
+  $('btn-auth-submit').textContent = 'Sign In';
+  $('auth-username-wrap').classList.add('hidden');
+  $('auth-password-confirm-wrap').classList.add('hidden');
+  $('auth-email').value = '';
+  $('auth-password').value = '';
+  $('auth-username').value = '';
+  $('auth-password-confirm').value = '';
+  $('auth-error').classList.add('hidden');
+
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+  document.body.style.overflow = '';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  viewAuth.classList.add('active');
+}
+
+// ── Welcome modal ──
+function showWelcomeModal() {
+  const modal = document.getElementById('welcome-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function closeWelcomeModal() {
+  const modal = document.getElementById('welcome-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const acceptBtn = document.getElementById('btn-welcome-accept');
+  if (acceptBtn) acceptBtn.addEventListener('click', closeWelcomeModal);
+  const modal = document.getElementById('welcome-modal');
+  if (modal) modal.querySelector('.wm-backdrop').addEventListener('click', closeWelcomeModal);
+});
+
 $('btn-logout').addEventListener('click', async () => {
   try { await api('POST','/api/auth/logout'); } catch {}
-  localStorage.removeItem('fs_token');
-  currentUser=null; currentMemberId=null; currentFolderId=null; showView(viewAuth);
+  forceLogout();
 });
 
 // ══ FORGOT PASSWORD ═══════════════════════════════════════════
@@ -236,6 +316,8 @@ async function loadMembers() {
       const card = document.createElement('div');
       card.className='member-card'; card.setAttribute('role','button'); card.setAttribute('tabindex','0');
       card.innerHTML=`
+        <div class="card-corners"><span></span><span></span><span></span><span></span></div>
+        <div class="card-scan-line"></div>
         <div class="member-avatar" style="background:${color}">${getInitials(m.name)}</div>
         <div class="member-info">
           <div class="member-name">${escHtml(m.name)}</div>
@@ -245,6 +327,7 @@ async function loadMembers() {
       const open = () => openMember(m.id, m.name, m.relation||'');
       card.addEventListener('click', open);
       card.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') open(); });
+      bind3DTilt(card);
       list.appendChild(card);
     });
   } catch(err) { showToast('Failed to load members','error'); }
@@ -301,12 +384,13 @@ async function loadFolders() {
       const card=document.createElement('div'); card.className='folder-card';
       card.setAttribute('role','button'); card.setAttribute('tabindex','0');
       card.innerHTML=`
-        <div class="folder-icon" style="color:${col}">&#128193;</div>
+        <div class="folder-icon" style="color:${col}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h4l1.5 2H18a2.5 2.5 0 0 1 2.5 2.5v6A2.5 2.5 0 0 1 18 19H6A2.5 2.5 0 0 1 3.5 16.5v-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div class="folder-card-name">${escHtml(f.name)}</div>
         <div class="folder-card-meta">${f.file_count} file${f.file_count!==1?'s':''}</div>`;
       const open=()=>openFolder(f.id,f.name);
       card.addEventListener('click',open);
       card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') open(); });
+      bind3DTilt(card);
       list.appendChild(card);
     });
   } catch(err) { showToast('Failed to load folders','error'); }
@@ -329,14 +413,14 @@ async function loadFiles() {
     if (!files.length) { empty.classList.remove('hidden'); return; }
     empty.classList.add('hidden');
     files.forEach(f => {
-      const {emoji,cls}=getFileIcon(f.mime_type,f.original_name);
+      const {svg,cls}=getFileIcon(f.mime_type,f.original_name);
       const card=document.createElement('div'); card.className='file-card';
       card.innerHTML=`
-        <div class="file-type-icon ${cls}">${emoji}</div>
+        <div class="file-type-icon ${cls}">${svg}</div>
         <div class="file-info">
           <div class="file-name" title="${escHtml(f.original_name)}">${escHtml(f.original_name)}</div>
-          <div class="file-date">&#128197; ${formatDate(f.uploaded_at)} &nbsp;&middot;&nbsp; ${formatSize(f.size)}</div>
-          ${f.note?`<div class="file-note">&#128172; ${escHtml(f.note)}</div>`:''}
+          <div class="file-date"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5v2M17 3.5v2M4.5 8.5h15M6 5.5h12A1.5 1.5 0 0 1 19.5 7v11A1.5 1.5 0 0 1 18 19.5H6A1.5 1.5 0 0 1 4.5 18V7A1.5 1.5 0 0 1 6 5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> ${formatDate(f.uploaded_at)} &nbsp;&middot;&nbsp; ${formatSize(f.size)}</div>
+          ${f.note?`<div class="file-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17.5V8.5A1.5 1.5 0 0 1 8.5 7h7A1.5 1.5 0 0 1 17 8.5v7A1.5 1.5 0 0 1 15.5 17H10l-3 3v-2.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> ${escHtml(f.note)}</div>`:''}
         </div>
         <div class="file-actions">
           <button class="btn-icon btn-preview-file" data-url="${escHtml(f.url)}" data-name="${escHtml(f.original_name)}" data-mime="${escHtml(f.mime_type)}" title="Preview">
@@ -346,6 +430,7 @@ async function loadFiles() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>`;
+      bind3DTilt(card);
       list.appendChild(card);
     });
     list.querySelectorAll('.btn-preview-file').forEach(btn=>{
@@ -377,7 +462,7 @@ function openPreview(file) {
   } else if (mime==='application/pdf'||ext==='pdf') {
     renderPDF(file.url,body);
   } else {
-    body.innerHTML=`<div class="preview-unsupported"><div class="preview-unsupported-icon">&#128196;</div><p>Preview not available.</p><a href="${escHtml(file.url)}" download="${escHtml(file.originalName)}" class="btn btn-primary">Download File</a></div>`;
+    body.innerHTML=`<div class="preview-unsupported"><div class="preview-unsupported-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5h7l4 4v11A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-13A1.5 1.5 0 0 1 7.5 5H7Zm7 0v4h4M9 13h6m-6 3h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div><p>Preview not available.</p><a href="${escHtml(file.url)}" download="${escHtml(file.originalName)}" class="btn btn-primary">Download File</a></div>`;
   }
 }
 
